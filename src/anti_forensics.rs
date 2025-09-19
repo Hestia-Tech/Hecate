@@ -2,11 +2,10 @@ use ring::rand::{SecureRandom, SystemRandom};
 use chacha20poly1305::{Key, XChaCha20Poly1305, aead::KeyInit};
 use argon2::Argon2;
 
-/// Injection de bruit algorithmique et cryptographique sophistiqué
 pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_fragments: &[Vec<u8>]) {
     let rng = SystemRandom::new();
 
-    // Niveau d'injection adaptatif selon menace détectée
+
     let noise_intensity = match crate::config::SECURITY_LEVEL {
         "PARANOID" => 8, // Maximum de bruit algorithmique
         "HIGH" => 5,
@@ -14,18 +13,16 @@ pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_f
     };
 
     for round in 0..noise_intensity {
-        // 1. Génération de séquences pseudo-cryptographiques
+
         let mut crypto_sequence = vec![0u8; 256];
         rng.fill(&mut crypto_sequence).unwrap();
 
-        // Simulation d'opérations de chiffrement en chaîne
         for chunk in crypto_sequence.chunks_mut(32) {
             let fake_key = [0u8; 32];
             let key = Key::from_slice(&fake_key);
             let cipher = XChaCha20Poly1305::new(key);
             std::hint::black_box(&cipher);
 
-            // Hash progressif pour simuler des dérivations (BLAKE3)
             use blake3::Hasher;
             let mut hasher = Hasher::new();
             hasher.update(chunk);
@@ -33,13 +30,11 @@ pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_f
             std::hint::black_box(hash_result);
         }
 
-        // 2. Calculs d'entropie factices distribués
         let mut entropy_pools = Vec::new();
         for i in 0..10 {
             let mut pool = vec![0u8; 64];
             rng.fill(&mut pool).unwrap();
 
-            // Mélange algorithmique complexe
             for j in 0..pool.len() {
                 pool[j] ^= ((i * j + round) % 256) as u8;
                 pool[j] = pool[j].wrapping_add(0xA5);
@@ -48,7 +43,6 @@ pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_f
         }
         std::hint::black_box(entropy_pools);
 
-        // 3. Opérations de dérivation Argon2 légères mais nombreuses
         for salt_variant in 0..5 {
             let mut dynamic_salt = [0u8; 32];
             rng.fill(&mut dynamic_salt).unwrap();
@@ -64,7 +58,6 @@ pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_f
             std::hint::black_box(mini_output);
         }
 
-        // 4. Fragmentation et recomposition simulées
         if !decoy_fragments.is_empty() {
             let fragment_idx = round % decoy_fragments.len();
             let fragment = &decoy_fragments[fragment_idx];
@@ -78,7 +71,6 @@ pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_f
             std::hint::black_box((checksum1, checksum2));
         }
 
-        // 5. Jitter temporel nano-distribué
         let mut jitter_bytes = [0u8; 2];
         rng.fill(&mut jitter_bytes).unwrap();
         let nano_jitter = ((u16::from_le_bytes(jitter_bytes) % 500) + 100) as u64;
