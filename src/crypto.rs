@@ -250,10 +250,8 @@ pub fn decrypt_data_impl(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>, String>
     }
 }
 
-/// Détermine les paramètres Argon2 optimaux adaptatifs pour résister à un adversaire étatique
 pub fn get_adaptive_state_resistant_argon2_params() -> Result<Params, String> {
-    // Variables d'environnement pour contrôle explicite
-    // Mémoire Argon2 en KiB
+
     let memory_kb: u32 = if let Some(override_kib) = crate::config::ARGON2_MEMORY_KIB_OVERRIDE {
         override_kib
     } else {
@@ -264,10 +262,9 @@ pub fn get_adaptive_state_resistant_argon2_params() -> Result<Params, String> {
         }
     };
 
-    // Itérations Argon2
+
     let iterations: u32 = crate::config::ARGON2_TIME_COST;
 
-    // Parallélisme Argon2 (borne par la disponibilité CPU)
     let parallelism: u32 = {
         let cpu_count = thread::available_parallelism()
             .map(|n| n.get() as u32)
@@ -277,9 +274,8 @@ pub fn get_adaptive_state_resistant_argon2_params() -> Result<Params, String> {
 
     println!("Configuration Argon2 anti-état adaptatif: {} MiB mémoire, {} itérations, {} threads", 
             memory_kb / 1024, iterations, parallelism);
-
-    // Validation des contraintes Argon2
-    let min_memory = 8 * parallelism; // Contrainte minimale d'Argon2
+    
+    let min_memory = 8 * parallelism; 
     let final_memory = memory_kb.max(min_memory);
 
     Params::new(
@@ -290,7 +286,6 @@ pub fn get_adaptive_state_resistant_argon2_params() -> Result<Params, String> {
     ).map_err(|e| format!("Erreur paramètres Argon2 adaptatifs: {}", e))
 }
 
-/// Dérivation de clé avec Argon2
 pub fn derive_key_argon2(master_key: &[u8], salt: &[u8]) -> Result<[u8; 32], String> {
     let params = get_adaptive_state_resistant_argon2_params()?;
     
@@ -303,19 +298,16 @@ pub fn derive_key_argon2(master_key: &[u8], salt: &[u8]) -> Result<[u8; 32], Str
     Ok(output)
 }
 
-/// Protection temporelle adaptative renforcée avec bruit algorithmique
 pub fn apply_timing_protection(memory_pools: &[Vec<u8>]) {
     let rng = SystemRandom::new();
     let start = std::time::Instant::now();
 
-    // Niveau de complexité adaptatif selon menace
     let complexity_level = match crate::config::SECURITY_LEVEL {
         "PARANOID" => 4, // Maximum noise
         "HIGH" => 3,
         _ => 2,
     };
 
-    // Opérations factices cryptographiquement réalistes  
     let mut noise_bytes = [0u8; 2];
     rng.fill(&mut noise_bytes).unwrap();
     let noise_ops = ((u16::from_le_bytes(noise_bytes) % (complexity_level * 20)) + 10) as usize;
@@ -351,7 +343,7 @@ pub fn apply_timing_protection(memory_pools: &[Vec<u8>]) {
                 }
                 std::hint::black_box(accumulator);
             }
-            _ => { // Accès mémoire distribués
+            _ => { 
                 if !memory_pools.is_empty() {
                     let pool_idx = i % memory_pools.len();
                     let pool = &memory_pools[pool_idx];
@@ -365,7 +357,6 @@ pub fn apply_timing_protection(memory_pools: &[Vec<u8>]) {
         }
     }
 
-    // Jitter temporel adaptatif
     let elapsed = start.elapsed();
     let min_time_micros = complexity_level as u64 * 100; // 200-800µs selon niveau
     if elapsed < std::time::Duration::from_micros(min_time_micros) {
@@ -374,18 +365,15 @@ pub fn apply_timing_protection(memory_pools: &[Vec<u8>]) {
     }
 }
 
-/// Protection lookup avec brouillage adaptatif de patterns d'accès
 pub fn apply_lookup_timing_protection(lookup_table: &std::collections::HashMap<u64, Vec<usize>>, fragments: &[std::sync::Arc<std::sync::Mutex<crate::MemoryFragment>>]) {
     let rng = SystemRandom::new();
-
-    // Complexité adaptative des lookups factices
+    
     let lookup_complexity = match crate::config::SECURITY_LEVEL {
         "PARANOID" => 15, // Maximum d'obfuscation
         "HIGH" => 8,
         _ => 5,
     };
 
-    // Patterns d'accès distribués pour confondre l'analyse
     for i in 0..lookup_complexity {
         let mut dummy_id_bytes = [0u8; 8];
         rng.fill(&mut dummy_id_bytes).unwrap();
@@ -403,7 +391,6 @@ pub fn apply_lookup_timing_protection(lookup_table: &std::collections::HashMap<u
             }
         }
 
-        // Jitter micro-temporel entre accès
         if i % 2 == 0 {
             let mut jitter_bytes = [0u8; 2];
             rng.fill(&mut jitter_bytes).unwrap();
@@ -412,12 +399,10 @@ pub fn apply_lookup_timing_protection(lookup_table: &std::collections::HashMap<u
         }
     }
 
-    // Sleep final adaptatif
     let final_sleep_micros = lookup_complexity as u64 * 5; // 25-75µs selon niveau
     thread::sleep(std::time::Duration::from_micros(final_sleep_micros));
 }
 
-/// Protection fragment avec timing
 pub fn apply_fragment_timing_protection() {
     let mut dummy_buffer = [0u8; 64];
     let rng = SystemRandom::new();
