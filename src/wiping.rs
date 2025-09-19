@@ -1,5 +1,7 @@
 use ring::rand::{SecureRandom, SystemRandom};
 use std::ptr;
+use std::sync::atomic::{fence, Ordering};
+use std::time::Duration;
 
 /// Performance-optimized secure destruction for volatile RAM.
 /// 
@@ -198,37 +200,55 @@ pub fn apply_fast_secure_pattern(buffer: &mut [u8]) -> Result<(), String> {
     Ok(())
 }
 
+
 /// Vérification read-back critique après chaque pass (détection d'optimisations compilateur)
 pub(crate) unsafe fn verify_pass_with_readback(buffer_ptr: *mut u8, buffer_len: usize, pass_number: usize) -> Result<(), String> {
-    let mut verification_failures = 0;
-    
+    if buffer_len == 0 {
+        return Ok(());
+    }
+
     // Échantillonnage de vérification distribué (pas 100% pour performance)
     let sample_step = if buffer_len > 1024 { 4 } else { 1 };
-    
+    let mut verification_failures: usize = 0;
+    let mut samples_checked: usize = 0;
+
+    // Barrière avant lecture pour s'assurer que les écritures précédentes sont visibles
+    fence(Ordering::SeqCst);
+
     for i in (0..buffer_len).step_by(sample_step) {
         let written_value = ptr::read_volatile(buffer_ptr.add(i));
-        
-        // Si c'est un pattern connu, on peut le vérifier
-        if pass_number <= 2 {
+        samples_checked += 1;
+
+        // Vérification pour patterns déterministes connus (pass 1 => 0x00, pass 2 => 0xFF)
+        if pass_number == 1 || pass_number == 2 {
             let expected = if pass_number == 1 { 0x00 } else { 0xFF };
             if written_value != expected {
                 verification_failures += 1;
-                if verification_failures < 10 { // Limite les logs
-                    eprintln!("Échec vérification pass {} offset {}: attendu 0x{:02X}, lu 0x{:02X}", 
-                            pass_number, i, expected, written_value);
+                if verification_failures <= 10 {
+                    eprintln!(
+                        "Échec vérification pass {} offset {}: attendu 0x{:02X}, lu 0x{:02X}",
+                        pass_number, i, expected, written_value
+                    );
                 }
             }
         }
+        // Pour les autres passes on peut faire des vérifications minimales (p.ex. non-const) si nécessaire.
     }
-    
-    let sample_step = if buffer_len > 1024 { 4 } else { 1 };
-    if verification_failures > buffer_len / 20 { // > 5% échecs
-        return Err(format!("Trop d'échecs de vérification pass {}: {}/{}", 
-                          pass_number, verification_failures, buffer_len / sample_step));
+
+    // Seuil d'échec relatif au nombre d'échantillons vérifiés
+    if samples_checked == 0 {
+        return Err(format!("Aucun échantillon vérifié pour pass {}", pass_number));
     }
-    
-    // Barrière mémoire critique pour forcer écriture
-    std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
+    let max_allowed_failures = (samples_checked as f64 * 0.05).ceil() as usize; // 5%
+    if verification_failures > max_allowed_failures {
+        return Err(format!(
+            "Trop d'échecs de vérification pass {}: {}/{} (seuil {})",
+            pass_number, verification_failures, samples_checked, max_allowed_failures
+        ));
+    }
+
+    // Barrière mémoire finale
+    fence(Ordering::SeqCst);
     Ok(())
 }
 
@@ -238,19 +258,48 @@ pub(crate) unsafe fn fill_and_verify_volatile(buffer_ptr: *mut u8, buffer_len: u
     for i in 0..buffer_len {
         ptr::write_volatile(buffer_ptr.add(i), pattern);
     }
-    
-    verify_pass_with_readback(buffer_ptr, buffer_len, pass_num)
+
+    // S'assurer que les écritures sont visibles avant de lire
+    fence(Ordering::SeqCst);
+
+    // Lecture de vérification complète ou échantillonnée
+    let sample_step = if buffer_len > 1024 { 4 } else { 1 };
+    let mut failures = 0usize;
+    for i in (0..buffer_len).step_by(sample_step) {
+        let readback = ptr::read_volatile(buffer_ptr.add(i));
+        if readback != pattern {
+            failures += 1;
+            if failures <= 10 {
+                eprintln!("Échec fill_and_verify pass {} offset {}: attendu 0x{:02X}, lu 0x{:02X}", pass_num, i, pattern, readback);
+            }
+        }
+    }
+
+    let samples_checked = (buffer_len + sample_step - 1) / sample_step;
+    let max_allowed_failures = (samples_checked as f64 * 0.05).ceil() as usize; // 5%
+    if failures > max_allowed_failures {
+        return Err(format!("Trop d'échecs fill_and_verify pass {}: {}/{}", pass_num, failures, samples_checked));
+    }
+
+    // Barrière finale
+    fence(Ordering::SeqCst);
+    Ok(())
 }
 
 /// Jitter temporel entre passes pour éviter optimisations timing-based
 pub fn temporal_jitter_between_passes() {
     let rng = SystemRandom::new();
     let mut jitter_bytes = [0u8; 2];
-    rng.fill(&mut jitter_bytes).unwrap_or_default();
-    
-    let jitter_micros = ((u16::from_le_bytes(jitter_bytes) % 1000) + 100) as u64;
-    std::thread::sleep(std::time::Duration::from_micros(jitter_micros));
+    if rng.fill(&mut jitter_bytes).is_ok() {
+        // 100..1099 microseconds
+        let jitter_micros = ((u16::from_le_bytes(jitter_bytes) % 1000) + 100) as u64;
+        std::thread::sleep(Duration::from_micros(jitter_micros));
+    } else {
+        // Si l'aléa échoue, petit délai constant sûr
+        std::thread::sleep(Duration::from_micros(200));
+    }
 }
+
 
 /// Destruction volatile finale avec double vérification read-back CRITIQUE
 /// Cette étape OBLIGATOIRE garantit que les optimisations du compilateur n'ont pas éliminé les écritures
