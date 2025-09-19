@@ -1,17 +1,33 @@
 [package]
-name = "hecate"
+name = "my-project"
 version = "0.1.0"
-authors = ["hachille"]
+authors = ["runner"]
 edition = "2021"
+
+[lib]
+name = "my_project"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hecate"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 chacha20poly1305 = "0.10"
-rand = "0.8"
+ring = "0.17.8"
 zeroize = { version = "1.7", features = ["derive"] }
-sha3 = "0.10"
+blake3 = "1.8.2"
 mimalloc = { version = "0.1", features = ["secure"] }
 libc = "0.2"
 argon2 = "0.5"
 secrecy = { version = "0.8", features = ["serde"] }
+num_cpus = "1.17.0"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = "s"
