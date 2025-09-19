@@ -2,7 +2,7 @@
 
 **Cryptographic memory vault and secure fragment manager**
 
-> Named after the goddess of magic. The project uses dark-magic-themed naming for aesthetic purposes only. It does not involve occult practices. It is a software security project.
+> Named after the goddess of magic. The project uses dark-magic-themed naming for aesthetic purposes only. It involve occult practices. It is a software security project.
 
 ---
 
