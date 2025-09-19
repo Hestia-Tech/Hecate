@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use crate::MemoryFragment;
 use chacha20poly1305::aead::KeyInit;
 
-/// Helper pour échantillonnage uniforme sans biais
 pub fn sample_uniform_u32(rng: &SystemRandom, max_exclusive: u32) -> Result<u32, String> {
     if max_exclusive == 0 {
         return Ok(0);
@@ -21,7 +20,6 @@ pub fn sample_uniform_u32(rng: &SystemRandom, max_exclusive: u32) -> Result<u32,
     }
 }
 
-/// Génère des tailles de fragments aléatoires pour la fragmentation
 pub fn generate_random_fragment_sizes(total_size: usize) -> Result<Vec<usize>, String> {
     if total_size == 0 {
         return Ok(Vec::new());
@@ -55,7 +53,7 @@ pub fn generate_random_fragment_sizes(total_size: usize) -> Result<Vec<usize>, S
     Ok(fragments)
 }
 
-/// Génère une couche d'obfuscation aléatoire
+
 pub fn generate_obfuscation_layer(size: usize) -> Result<Vec<u8>, String> {
     let rng = SystemRandom::new();
     let mut obfuscation = vec![0u8; size];
@@ -63,15 +61,14 @@ pub fn generate_obfuscation_layer(size: usize) -> Result<Vec<u8>, String> {
     Ok(obfuscation)
 }
 
-/// Insère un fragment à une position aléatoire dans la liste des fragments
 pub fn random_insert_fragment_impl(fragments: &mut Vec<Arc<Mutex<MemoryFragment>>>, fragment: MemoryFragment) -> usize {
-    // Indices stables: pas de coût ni de biais d’insertion observable
+    
     let index = fragments.len();
     fragments.push(Arc::new(Mutex::new(fragment)));
     index
 }
 
-/// Génération de données leurres améliorées
+
 pub fn generate_enhanced_decoy_data(count: usize) -> Vec<Box<[u8]>> {
     let mut decoys = Vec::new();
     let rng = SystemRandom::new();
@@ -87,13 +84,11 @@ pub fn generate_enhanced_decoy_data(count: usize) -> Vec<Box<[u8]>> {
         match pattern_bytes[0] % 3 {
             0 => { rng.fill(&mut data).unwrap(); },
             1 => {
-                // Pattern déterministe
                 for (i, byte) in data.iter_mut().enumerate() {
                     *byte = ((i * 13 + 37) % 256) as u8;
                 }
             }
             _ => {
-                // Pattern avec header
                 data[0..4].copy_from_slice(&(size as u32).to_le_bytes());
                 rng.fill(&mut data[4..]).unwrap();
             }
@@ -105,7 +100,6 @@ pub fn generate_enhanced_decoy_data(count: usize) -> Vec<Box<[u8]>> {
     decoys
 }
 
-/// Opérations factices sur les données leurres
 pub fn perform_enhanced_decoy_operations_impl(decoy_data: &[Box<[u8]>]) {
     let rng = SystemRandom::new();
 
@@ -166,7 +160,6 @@ pub fn perform_enhanced_decoy_operations_impl(decoy_data: &[Box<[u8]>]) {
             std::thread::sleep(sleep_time); 
         }
 
-        // Jitter temporel
         if i % 3 == 0 {
             let mut delay_bytes = [0u8; 2];
             rng.fill(&mut delay_bytes).unwrap();
@@ -176,7 +169,6 @@ pub fn perform_enhanced_decoy_operations_impl(decoy_data: &[Box<[u8]>]) {
     }
 }
 
-/// Randomisation mémoire basique (s'appuie sur l'OS ASLR et l'allocateur)
 pub fn basic_memory_randomization() {
     let rng = SystemRandom::new();
 
