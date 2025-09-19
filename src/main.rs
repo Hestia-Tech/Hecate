@@ -12,7 +12,7 @@ fn main(){
 
     // Récupération
     let data = hecate.retrieve("document_secret").unwrap();
-    // Attention: ne pas logger les données sensibles en production
+
 
     if data == datae {
         println!(" ---------------> Récupération réussie");
