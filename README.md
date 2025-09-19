@@ -60,12 +60,11 @@ Dependencies are declared in `Cargo.toml` and include cryptographic crates. Revi
 Clone the repository and build with cargo:
 
 ```bash
-git clone https://github.com/<your-user>/hecate.git
+git clone https://github.com/Hestia-Tech/Hecate.git
 cd hecate
 cargo build --release
 ```
 
-Replace `<your-user>` with your GitHub account.
 
 ## Quick start
 
