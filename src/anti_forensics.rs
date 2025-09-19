@@ -35,10 +35,11 @@ pub fn apply_algorithmic_noise_injection_impl(_memory_pools: &[Vec<u8>], decoy_f
             let mut pool = vec![0u8; 64];
             rng.fill(&mut pool).unwrap();
 
-            for j in 0..pool.len() {
-                pool[j] ^= ((i * j + round) % 256) as u8;
-                pool[j] = pool[j].wrapping_add(0xA5);
+            for (j, item) in pool.iter_mut().enumerate() {
+                *item ^= ((i * j + round) % 256) as u8;
+                *item = item.wrapping_add(0xA5);
             }
+
             entropy_pools.push(pool);
         }
         std::hint::black_box(entropy_pools);

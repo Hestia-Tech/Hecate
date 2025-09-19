@@ -39,7 +39,9 @@ pub fn secure_multilevel_destruction(buffer: &mut [u8]) -> Result<(), String> {
         },
         "NORMAL" => {
             // Fast 2-pass destruction (performance improvement from 3-pass)
-            apply_fast_secure_pattern(buffer)?; // Use existing fast pattern
+            //apply_fast_secure_pattern(buffer)?; // Use existing fast pattern
+            // Optimized 3-pass destruction (performance improvement from 7-pass)
+            apply_nist_patterns(buffer)?;
         },
         _ => {
             // Single-pass secure zeroing for best performance
@@ -116,7 +118,7 @@ pub fn apply_gutmann_patterns(buffer: &mut [u8]) -> Result<(), String> {
     eprintln!("Destruction Gutmann-inspirée RAM 35-pass effectuée (zéro allocation temporaire)");
     Ok(())
 }
-
+/// # Safety
 /// DoD-inspiré pour RAM volatile (7 passes) avec vérifications read-back
 /// NOTE: DoD 5220.22-M original = supports magnétiques, adapté ici pour RAM
 pub unsafe fn apply_dod_patterns(buffer: &mut [u8]) -> Result<(), String> {
@@ -239,7 +241,7 @@ pub(crate) unsafe fn verify_pass_with_readback(buffer_ptr: *mut u8, buffer_len: 
     if samples_checked == 0 {
         return Err(format!("Aucun échantillon vérifié pour pass {}", pass_number));
     }
-    let max_allowed_failures = (samples_checked as f64 * 0.05).ceil() as usize; // 5%
+    let max_allowed_failures = (samples_checked as f64 * 0.01).ceil() as usize; // 5%
     if verification_failures > max_allowed_failures {
         return Err(format!(
             "Trop d'échecs de vérification pass {}: {}/{} (seuil {})",
@@ -275,7 +277,7 @@ pub(crate) unsafe fn fill_and_verify_volatile(buffer_ptr: *mut u8, buffer_len: u
         }
     }
 
-    let samples_checked = (buffer_len + sample_step - 1) / sample_step;
+    let samples_checked = buffer_len.div_ceil(sample_step);
     let max_allowed_failures = (samples_checked as f64 * 0.05).ceil() as usize; // 5%
     if failures > max_allowed_failures {
         return Err(format!("Trop d'échecs fill_and_verify pass {}: {}/{}", pass_num, failures, samples_checked));

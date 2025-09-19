@@ -149,7 +149,7 @@ impl Drop for LockedMemoryRegion {
 /// - Immune to swap file analysis
 pub fn create_secure_fragment_memory(size: usize) -> Result<LockedMemoryRegion, String> {
     let page_size = unsafe { sysconf(_SC_PAGESIZE) as usize };
-    let aligned_size = ((size + page_size - 1) / page_size) * page_size;
+    let aligned_size = size.div_ceil(page_size) * page_size;
     
     unsafe {
         // Allocate page-aligned memory using mmap

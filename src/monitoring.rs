@@ -236,12 +236,11 @@ pub fn monitor_network_connections() -> Result<(), String> {
 
         for line in tcp_connections.lines().skip(1) { 
             let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 4 {
+            if parts.len() >= 4
 
-                if parts[3] == "01" {
+                && parts[3] == "01" {
                     suspicious_connections += 1;
                 }
-            }
         }
 
         if suspicious_connections > 50 {
