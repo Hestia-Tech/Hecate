@@ -1,4 +1,4 @@
-use my_project::Hecate;
+use hecate::Hecate;
 
 fn main(){
     // Initialisation avec clé maître

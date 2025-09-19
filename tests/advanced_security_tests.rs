@@ -1,5 +1,5 @@
-use my_project::Hecate;
-use my_project::crypto::{encrypt_data_impl, decrypt_data_impl, derive_key_argon2};
+use hecate::Hecate;
+use hecate::crypto::{encrypt_data_impl, decrypt_data_impl, derive_key_argon2};
 use ring::rand::{SecureRandom, SystemRandom};
 
 fn fixed_key() -> [u8; 32] {

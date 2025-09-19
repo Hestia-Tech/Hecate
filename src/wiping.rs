@@ -320,7 +320,7 @@ pub fn secure_volatile_destruction(buffer: &mut [u8]) -> Result<(), String> {
         }
         
         // Barrière mémoire critique
-        std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
+        fence(Ordering::SeqCst);
         
         // Pass 2: Pattern alternant avec vérification immédiate
         for i in 0..buffer_len {
@@ -334,13 +334,13 @@ pub fn secure_volatile_destruction(buffer: &mut [u8]) -> Result<(), String> {
         }
         
         // Barrière mémoire finale
-        std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
+        fence(Ordering::SeqCst);
 
         // Pass 3: Remise à zéro finale (meilleure hygiène post-destruction)
         for i in 0..buffer_len {
             ptr::write_volatile(buffer_ptr.add(i), 0x00);
         }
-        std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
+        fence(Ordering::SeqCst);
     }
     
     Ok(())
