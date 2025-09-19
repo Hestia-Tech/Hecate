@@ -39,7 +39,9 @@ pub fn secure_multilevel_destruction(buffer: &mut [u8]) -> Result<(), String> {
         },
         "NORMAL" => {
             // Fast 2-pass destruction (performance improvement from 3-pass)
-            apply_fast_secure_pattern(buffer)?; // Use existing fast pattern
+            //apply_fast_secure_pattern(buffer)?; // Use existing fast pattern
+            // Optimized 3-pass destruction (performance improvement from 7-pass)
+            apply_nist_patterns(buffer)?;
         },
         _ => {
             // Single-pass secure zeroing for best performance
