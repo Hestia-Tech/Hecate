@@ -224,7 +224,6 @@ pub fn attempt_fragment_memory_protection(fragment: &MemoryFragment) {
     }
 }
 
-/// Lookup à temps constant avec brouillage
 pub fn constant_time_lookup_impl(
     lookup_table: &HashMap<u64, Vec<usize>>, 
     fragments: &[Arc<Mutex<MemoryFragment>>],
@@ -259,7 +258,7 @@ pub fn constant_time_lookup_impl(
     (indices, lookup_success)
 }
 
-/// Traitement de fragment à temps constant
+
 pub fn process_fragment_constant_time_impl(
     fragments: &[Arc<Mutex<MemoryFragment>>], 
     indices: &[usize], 
@@ -290,7 +289,6 @@ pub fn process_fragment_constant_time_impl(
                     return Err("Checksum invalide".into());
                 }
 
-                // Désobfuscation
                 let obf_size = std::cmp::min(fragment.obfuscation_layer.len(), byte_budget);
                 for (i, byte) in processing_buffer.iter_mut().enumerate() {
                     if i < obf_size {
@@ -308,30 +306,24 @@ pub fn process_fragment_constant_time_impl(
     Ok(processing_buffer[..actual_data_size].to_vec())
 }
 
-/// Initialisation de la mémoire anti-forensique
+
 pub fn initialize_anti_forensic_memory_impl(hecate: &mut crate::Hecate) -> Result<(), String> {
     // Durcissement process (undumpable, no_new_privs)
     apply_process_hardening();
 
-    // Désactiver les core dumps système critiques
     disable_system_core_dumps()?;
     
-    // Protection cold-boot attacks
     apply_cold_boot_memory_scrambling(hecate)?;
-    
-    // Générer pools de pollution mémoire distribués
+
     generate_memory_pollution_waves(hecate)?;
-    
-    // Créer fragments de confusion forensique
+
     generate_forensic_confusion_fragments(hecate)?;
-    
-    // Verrouiller régions critiques sécurisées
+
     lock_critical_memory_regions(hecate)?;
 
     Ok(())
 }
 
-/// Durcissement process global (undumpable, no_new_privs)
 fn apply_process_hardening() {
     unsafe {
         let _ = libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0);
@@ -339,7 +331,6 @@ fn apply_process_hardening() {
     }
 }
 
-/// Désactive les core dumps système pour protection critique
 fn disable_system_core_dumps() -> Result<(), String> {
     use libc::{setrlimit, RLIMIT_CORE, rlimit};
     
@@ -358,11 +349,9 @@ fn disable_system_core_dumps() -> Result<(), String> {
     Ok(())
 }
 
-/// Protection contre les attaques cold-boot avec brouillage mémoire
 fn apply_cold_boot_memory_scrambling(hecate: &mut crate::Hecate) -> Result<(), String> {
     let rng = SystemRandom::new();
     
-    // Effectuer 3-5 cycles de brouillage mémoire
     let mut cycles_bytes = [0u8; 1];
     rng.fill(&mut cycles_bytes).map_err(|_| "Erreur génération cycles")?;
     let scramble_cycles = ((cycles_bytes[0] % 3) + 3) as usize;
@@ -370,7 +359,7 @@ fn apply_cold_boot_memory_scrambling(hecate: &mut crate::Hecate) -> Result<(), S
     println!("Application de {} cycles de brouillage anti-cold-boot", scramble_cycles);
     
     for cycle in 0..scramble_cycles {
-        // Allocation temporaire pour brouiller la layout mémoire
+
         let mut scramble_sizes = Vec::new();
         for _ in 0..20 {
             let mut size_bytes = [0u8; 2];
@@ -386,10 +375,8 @@ fn apply_cold_boot_memory_scrambling(hecate: &mut crate::Hecate) -> Result<(), S
             temp_allocations.push(buffer);
         }
         
-        // Libérer dans un ordre aléatoire
         drop(temp_allocations);
         
-        // Rotation des compteurs
         hecate.memory_rotation_counter = hecate.memory_rotation_counter.wrapping_add(1);
         if cycle % 2 == 0 {
             hecate.last_rotation_time = std::time::Instant::now();
@@ -399,7 +386,7 @@ fn apply_cold_boot_memory_scrambling(hecate: &mut crate::Hecate) -> Result<(), S
     Ok(())
 }
 
-/// Génère des vagues de pollution mémoire distribués
+
 fn generate_memory_pollution_waves(hecate: &mut crate::Hecate) -> Result<(), String> {
     let rng = SystemRandom::new();
     let mut wave_size_bytes = [0u8; 2];
@@ -419,7 +406,6 @@ fn generate_memory_pollution_waves(hecate: &mut crate::Hecate) -> Result<(), Str
     Ok(())
 }
 
-/// Remplit la mémoire avec des patterns réalistes pour tromper l'analyse
 fn fill_with_realistic_decoy_patterns(buffer: &mut [u8]) {
     let rng = SystemRandom::new();
     let pattern_choice = {
@@ -430,24 +416,20 @@ fn fill_with_realistic_decoy_patterns(buffer: &mut [u8]) {
 
     match pattern_choice {
         0 => {
-            // Pattern ressemblant à des clés cryptographiques
             for (i, byte) in buffer.iter_mut().enumerate() {
                 *byte = ((i * 31 + 17) ^ (i * 13 + 7)) as u8;
             }
         },
         1 => {
-            // Pattern ressemblant à des données chiffrées
             rng.fill(buffer).unwrap_or_default();
         },
         2 => {
-            // Pattern avec des séquences répétitives (simule des structures)
             let pattern = &[0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE];
             for (i, byte) in buffer.iter_mut().enumerate() {
                 *byte = pattern[i % pattern.len()] ^ ((i / pattern.len()) as u8);
             }
         },
         _ => {
-            // Pattern avec checksum factice
             for (i, byte) in buffer.iter_mut().enumerate() {
                 let checksum_byte = i.wrapping_mul(7).wrapping_add(23) as u8;
                 *byte = checksum_byte ^ 0x5A;
@@ -456,11 +438,10 @@ fn fill_with_realistic_decoy_patterns(buffer: &mut [u8]) {
     }
 }
 
-/// Génère des fragments factices pour confondre l'analyse forensique
+
 fn generate_forensic_confusion_fragments(hecate: &mut crate::Hecate) -> Result<(), String> {
     let rng = SystemRandom::new();
 
-    // Générer 50-100 fragments factices
     let mut count_bytes = [0u8; 1];
     rng.fill(&mut count_bytes).map_err(|_| "Erreur génération count")?;
     let fragment_count = ((count_bytes[0] % 50) + 50) as usize;
@@ -480,11 +461,10 @@ fn generate_forensic_confusion_fragments(hecate: &mut crate::Hecate) -> Result<(
     Ok(())
 }
 
-/// Verrouille des régions critiques sécurisées avec mmap pour empêcher le swap
 fn lock_critical_memory_regions(hecate: &mut crate::Hecate) -> Result<(), String> {
     let page_size = unsafe { sysconf(_SC_PAGESIZE) } as usize;
 
-    // Régions adaptées au niveau de sécurité pour adversaire étatique
+
     let base_regions = match crate::config::SECURITY_LEVEL {
         "PARANOID" => vec![page_size * 256, page_size * 512, page_size * 1024], // 1-4 MiB
         "HIGH" => vec![page_size * 64, page_size * 128, page_size * 256],       // 256KB-1MiB
@@ -516,12 +496,12 @@ fn lock_critical_memory_regions(hecate: &mut crate::Hecate) -> Result<(), String
     Ok(())
 }
 
-/// Crée une région mémoire sécurisée avec mmap et mlock
+
 fn create_secure_locked_region(size: usize, page_size: usize) -> Result<LockedMemoryRegion, String> {
     let page_aligned_size = size.div_ceil(page_size) * page_size;
 
     unsafe {
-        // Allocation avec mmap pour contrôle total
+
         let ptr = mmap(
             ptr::null_mut(),
             page_aligned_size,
@@ -535,18 +515,15 @@ fn create_secure_locked_region(size: usize, page_size: usize) -> Result<LockedMe
             return Err("Erreur mmap".to_string());
         }
 
-        // Remplir avec des données factices réalistes (toute la région mappée)
         let rng = SystemRandom::new();
         let slice = std::slice::from_raw_parts_mut(ptr, page_aligned_size);
         rng.fill(slice).map_err(|_| "Erreur remplissage région")?;
 
-        // Marquer la région comme non-dumpable (meilleure résistance aux core dumps)
         let _ = libc::madvise(ptr as *mut libc::c_void, page_aligned_size, libc::MADV_DONTDUMP);
 
-        // Verrouiller en mémoire
         let lock_result = mlock(ptr as *const libc::c_void, page_aligned_size);
         if lock_result != 0 {
-            // Échec du verrouillage, nettoyer
+
             munmap(ptr as *mut libc::c_void, page_aligned_size);
             return Err("Erreur mlock".to_string());
         }
@@ -558,20 +535,19 @@ fn create_secure_locked_region(size: usize, page_size: usize) -> Result<LockedMe
         })
     }
 }
-
-/// Nettoie les structures anti-forensiques sécurisées  
+ 
 pub fn cleanup_anti_forensic_memory_impl(hecate: &mut crate::Hecate) {
-    // Les régions verrouillées se nettoient automatiquement via Drop trait
+
     let locked_count = hecate.locked_regions.len();
     hecate.locked_regions.clear(); // Trigger Drop pour chaque région
 
-    // Effacement sécurisé des pools de mémoire
+
     for pool in &mut hecate.memory_pools {
         pool.fill(0); // Effacement avant libération
     }
     hecate.memory_pools.clear();
 
-    // Effacement sécurisé des fragments factices
+
     for fragment in &mut hecate.decoy_fragments {
         fragment.fill(0);
     }
