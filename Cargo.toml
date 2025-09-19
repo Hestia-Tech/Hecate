@@ -1,7 +1,6 @@
 [package]
-name = "my-project"
+name = "hecate"
 version = "0.1.0"
-authors = ["runner"]
 edition = "2021"
 
 [lib]
